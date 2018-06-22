@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "start": "node index.js"
+  },
+  "name": "typeDojo",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:boygao1992/typeDojo.git",
+  "author": "boygao1992 <wg2313@columbia.edu>",
+  "license": "MIT",
+  "dependencies": {
+    "crocks": "^0.9.4",
+    "moment": "^2.22.2",
+    "ramda": "^0.25.0",
+    "randomatic": "^3.0.0"
+  },
+  "devDependencies": {
+    "eyes": "^0.1.8"
+  }
+}
