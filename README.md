@@ -7,6 +7,8 @@ character sets
 `yarn start`
 
 # Records
+2018-06-27-1 4min 54s
+
 2018-06-26-2 5min 06s
 
 2018-06-26-1 5min 08s
