@@ -2,11 +2,31 @@ typing exercises
 
 character sets 
 - Numeric characters (`0123456789`)
-- Special characters (`~!@#$%^&()_+-={}[];\',.`, `*` missing)
+- Special characters (`~!@#$%^&()_+-={}[];\',.`, `*|` missing)
 
 `yarn start`
 
+# Guideline
+
+### 2018-06-29
+Performance kind of stabilized.
+Need to target the poorly-handled subset of symbols.
+
+No enough data collected during the exercises.
+One way is to build a web app for this.
+
+By mental statistics, `%^&` was mistyped most frequently.
+For `23@#`, sometimes not using the optimal finger.
+
+Left `shift` and right `shift` switching needs some work.
+
+Current strategy is to switch hand when the other one is "busy".
+An exception: `6` or `^` is right in the middle of left and right hands.
+When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
+
 # Records
+2018-06-29-1 5min 08s
+
 2018-06-28-1 5min 03s
 
 2018-06-27-2 5min 01s
