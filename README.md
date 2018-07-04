@@ -8,7 +8,18 @@ character sets
 
 # Guideline
 
-### 2018-06-29
+
+### 2018-07-04 4min40s
+Note taking in latex is smoother but missing `*` and `|` in training.
+
+Need a better symbol generator.
+
+TODO
+- build a composable random number generator
+- build common distributions on top of that
+- generate from customized set of symbols
+
+### 2018-06-29 5min
 Performance kind of stabilized.
 Need to target the poorly-handled subset of symbols.
 
@@ -25,6 +36,8 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+2018-07-04-1 4min 47s
+
 2018-07-03-2 4min 37s
 
 2018-07-03-1 4min 28s
