@@ -8,7 +8,6 @@ character sets
 
 # Guideline
 
-
 ### 2018-07-04 4min40s
 Note taking in latex is smoother but missing `*` and `|` in training.
 
@@ -16,6 +15,7 @@ Need a better symbol generator.
 
 TODO
 - build a composable random number generator
+  - Linear cogruential generator (LCG)
 - build common distributions on top of that
 - generate from customized set of symbols
 
@@ -81,3 +81,4 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 2018-06-22-2 7min 11s
 
 2018-06-22-1 7min 36s
+
