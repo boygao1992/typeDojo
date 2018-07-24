@@ -8,6 +8,28 @@ character sets
 
 # Guideline
 
+### 2018-07-24 4min 10s
+
+Instant Feedback
+- error on current key
+- repeated errors for the same key
+
+Statistics
+- total number of errors
+- sorting keys by number of errors
+- sorting keys by reflex time
+- trend diagram over a period of time
+
+Mode
+- accept correction or not
+- able to see the next few letters or not
+- RPG (against imaginary boss, life point, attack, levels, etc.)
+
+Customization
+- set of keys
+- difficulty (definition? cue: finger distance between neighbors, repeated keys in a sequence (lower the difficulty), randomness, ...)
+
+
 ### 2018-07-04 4min40s
 Note taking in latex is smoother but missing `*` and `|` in training.
 
