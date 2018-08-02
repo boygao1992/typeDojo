@@ -6,9 +6,7 @@ character sets
 
 `yarn start`
 
-# Guideline
-
-### 2018-07-24 4min 10s
+# Design
 
 Instant Feedback
 - error on current key
@@ -20,17 +18,24 @@ Statistics
 - sorting keys by reflex time
 - trend diagram over a period of time
 
-Mode
+Configuration
 - accept correction or not
 - able to see the next few letters or not
-- RPG (against imaginary boss, life point, attack, levels, etc.)
-
-Customization
+- automatically remove wrong characters or not (especially for training, typing backspace in-between adds up mental noises)
 - set of keys
 - difficulty (definition? cue: finger distance between neighbors, repeated keys in a sequence (lower the difficulty), randomness, ...)
 
+Mode
+- training with visual cue (virtual keyboard with keys highlighted)
+- test session (strict config)
+- RPG (against imaginary boss, life point, attack, levels, etc.)
 
-### 2018-07-04 4min40s
+
+# Guideline
+
+### 2018-07-24 4min 10s
+
+### 2018-07-04 4min 40s
 Note taking in latex is smoother but missing `*` and `|` in training.
 
 Need a better symbol generator.
@@ -58,6 +63,8 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+2018-08-02-1 3min 52s
+
 2018-08-01-1 4min 12s
 
 2018-07-31-2 3min 54s
