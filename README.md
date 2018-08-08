@@ -29,6 +29,10 @@ Mode
 - training with visual cue (virtual keyboard with keys highlighted)
 - test session (strict config)
 - RPG (against imaginary boss, life point, attack, levels, etc.)
+  - dungeon explore
+  - # of corrects - # of errors = # of steps available
+  
+[Dungeons TOME](https://www.dungeonstome.com/)
 
 
 # Guideline
@@ -63,6 +67,8 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+2018-08-08-1 4min 08s
+
 2018-08-07-2 3min 49s
 
 2018-08-07-1 3min 57s
