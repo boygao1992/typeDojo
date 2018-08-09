@@ -67,6 +67,8 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+2018-08-09-1 4min 02s
+
 2018-08-08-2 3min 59s
 
 2018-08-08-1 4min 08s
