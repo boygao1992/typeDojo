@@ -34,6 +34,7 @@ Mode
   
 [Dungeons TOME](https://www.dungeonstome.com/)
 
+[sightreading.training — A tool for learning to sight-read sheet music](https://github.com/leafo/sightreading.training)
 
 # Guideline
 
