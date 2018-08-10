@@ -38,6 +38,8 @@ Mode
 
 # Guideline
 
+### 2018-08-10 4min
+
 ### 2018-07-24 4min 10s
 
 ### 2018-07-04 4min 40s
@@ -68,6 +70,8 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+2018-08-10-1 3min 53s
+
 2018-08-09-2 3min 44s
 
 2018-08-09-1 4min 02s
