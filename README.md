@@ -40,6 +40,12 @@ Mode
 
 ### 2018-08-10 4min
 
+pain points
+1. alternate between little finger and ring finger
+e.g. `[]`, `09`,`de pl oy`
+2. double strike with the same finger, especially little finger and ring finger
+e.g. `dep lo y`
+
 ### 2018-07-24 4min 10s
 
 ### 2018-07-04 4min 40s
