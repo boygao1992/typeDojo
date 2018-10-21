@@ -78,6 +78,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 # Records
 2018-10-19-2 3min 26s
 
+2018-10-20-2 3min 42s
+
 2018-10-19-1 3min 23s
 
 2018-10-18-2 3min 29s
