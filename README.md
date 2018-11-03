@@ -12,12 +12,6 @@ Instant Feedback
 - error on current key
 - repeated errors for the same key
 
-Statistics
-- total number of errors
-- sorting keys by number of errors
-- sorting keys by reflex time
-- trend diagram over a period of time
-
 Configuration
 - accept correction or not
 - able to see the next few letters or not
@@ -28,6 +22,7 @@ Configuration
 Mode
 - training with visual cue (virtual keyboard with keys highlighted)
 - test session (strict config)
+- review session (replay, statistics, annotation)
 - RPG (against imaginary boss, life point, attack, levels, etc.)
   - dungeon explore
   - # of corrects - # of errors = # of steps available
@@ -35,6 +30,33 @@ Mode
 [Dungeons TOME](https://www.dungeonstome.com/)
 
 [sightreading.training — A tool for learning to sight-read sheet music](https://github.com/leafo/sightreading.training)
+
+## Statistics
+
+Global
+- total number of errors
+- sorting keys by number of errors
+- sorting keys by reflex time
+- trend diagram over a period of time
+
+
+Local
+1. record all key strokes
+  - characters
+    - "A"-"Z", "a"-"z", "!@#$%^&*()-_=+\|"
+    - "Backspace", "Shift"
+    - the rest are grouped into "Other"
+      - "Space", modifiers, function keys (Arrow keys? depends on Mode)
+  - reflex time
+  - errors (~ matching)
+2. group key strokes into clusters (to determine "hard" snippets) by
+  - time-related
+    - average speed over a window
+    - below a threshold of average speed
+    - below a threshold of reflex time
+  - accuracy-related
+    - below a threshold of errors
+  - user annotated
 
 # Guideline
 
@@ -76,6 +98,8 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+2018-10-03-1 3min 19s
+
 2018-10-02-2 3min 21s
 
 2018-10-02-1 3min 31s
