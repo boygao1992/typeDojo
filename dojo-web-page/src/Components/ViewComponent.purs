@@ -2,24 +2,27 @@ module ViewComponent where
 
 import Prelude
 
+import Affjax (get) as AX
+import Affjax.ResponseFormat (string) as AX
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
-import HalogenUtils (classList)
-
-import Data.Array (snoc)
+import Data.Array (snoc, takeEnd, zip) as A
 import Data.DateTime.Instant (unInstant) as Time
+import Data.Either (either)
 import Data.Foldable (traverse_, foldl)
 import Data.Maybe (Maybe(..))
 import Data.String (length) as String
 import Data.String.CodeUnits (dropRight, toCharArray) as String
 import Data.Time.Duration (Milliseconds)
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Now (now) as Time
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.Query.EventSource (eventSource') as HES
 import Halogen.HTML.CSS as HC
+import Halogen.Query.EventSource (eventSource') as HES
+import HalogenUtils (classList_)
 import ShowChar (showChar)
 import Web.Event.Event (preventDefault) as WE
 import Web.Event.EventTarget (addEventListener, eventListener, removeEventListener) as WE
@@ -48,6 +51,9 @@ isPrint str
 isBackspace :: String -> Boolean
 isBackspace = (_ == "Backspace")
 
+isInsert :: String -> Boolean
+isInsert = (_ == "Insert")
+
 
 -- | Types
 
@@ -56,6 +62,7 @@ type TimeStamp = Milliseconds
 type State =
   { history :: Array KeyStroke
   , input :: String
+  , dojo :: String
   }
 
 type KeyStroke =
@@ -63,15 +70,27 @@ type KeyStroke =
   , timeStamp :: TimeStamp
   }
 
+data KeyMatch
+  = KeyCorrect
+  | KeyWrong
+  | KeyNoInput
+derive instance eqKeyMatch :: Eq KeyMatch
+
+type KeyProcessed =
+  { key :: Char
+  , status :: KeyMatch
+  }
+
 initialState :: State
 initialState =
   { history : []
   , input : ""
+  , dojo : ""
   }
 
 data Query next
-  = OnKeyDown KE.KeyboardEvent (H.SubscribeStatus -> next)
-  | Init next
+  = Init next
+  | OnKeyDown KE.KeyboardEvent (H.SubscribeStatus -> next)
 
 type Input = Unit
 
@@ -80,38 +99,69 @@ type Output = Void
 type IO = Aff
 
 -- | View
-charBlock :: forall q. Char -> H.ComponentHTML q
-charBlock char=
-  HH.span [ classList [ CN.charblock]]
-  [ HH.text $ showChar char]
+charBlock :: forall q. KeyProcessed -> H.ComponentHTML q
+charBlock { key, status} =
+  HH.span [ classList_ [ Tuple true CN.charblock
+                       , Tuple (status == KeyCorrect) CN.keyCorrect
+                       , Tuple (status == KeyWrong) CN.keyWrong
+                       ]
+          ]
+  [ HH.text $ showChar key]
+
+
 
 -- | Component
 
 render :: State -> H.ComponentHTML Query
-render { input } =
+render { input , dojo } =
   HH.div_
   [ HH.p_ $
-    foldl (\acc item -> acc `snoc` (charBlock item)) [] (String.toCharArray input)
+    foldl (\acc item -> acc `A.snoc` (charBlock item)) [] processed
   , HC.stylesheet  CSSRoot.root
   ]
 
+  where
+    _input :: Array Char
+    _input = String.toCharArray input
+
+    _dojo :: Array Char
+    _dojo = String.toCharArray dojo
+
+    processed :: Array KeyProcessed
+    processed =
+      (_ <>
+       ( (\d -> { key : d, status : KeyNoInput })
+         <$> A.takeEnd (String.length dojo - String.length input) _dojo)
+      )
+      $ (\(Tuple i d) -> if i == d then { key : d , status : KeyCorrect } else { key : d , status : KeyWrong })
+      <$> A.zip _input _dojo
+
 eval :: Query ~> H.ComponentDSL State Query Output IO
+eval (Init next) = next <$ do
+  document <- H.liftEffect $ DOM.document =<< DOM.window
+  H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
+
+  { body } <- H.liftAff $ AX.get AX.string url
+  let dojo = either (const "") identity body
+  H.modify_ _ { dojo = dojo }
+
+  where
+    url :: String
+    url = "/dojo"
+
 eval (OnKeyDown ev reply) = do
-  H.liftEffect $ WE.preventDefault $ KE.toEvent ev
-  ms <- Time.unInstant <$> (H.liftEffect Time.now)
   let key = KE.key $ ev
+  when (not <<< isInsert $ key) do
+    H.liftEffect $ WE.preventDefault $ KE.toEvent ev
+  ms <- Time.unInstant <$> (H.liftEffect Time.now)
   state <- H.get
   H.modify_
-    _ { history = state.history `snoc` { key : KE.key ev, timeStamp : ms} }
+    _ { history = state.history `A.snoc` { key : KE.key ev, timeStamp : ms} }
   when (isPrint key) do
     H.modify_ _ { input = state.input <> key }
   when (isBackspace key) do
     H.modify_ _ { input = String.dropRight 1 state.input}
   pure $ reply H.Listening
-eval (Init next) = next <$ do
-  document <- H.liftEffect $ DOM.document =<< DOM.window
-  H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
-  pure next
 
 component :: H.Component HH.HTML Query Input Output IO
 component = H.lifecycleComponent spec'

@@ -4,10 +4,11 @@ import Prelude
 
 import CSS (CSS)
 import CSS (backgroundColor, body, borderBox, boxSizing, display, inlineBlock, star) as CSS
-import CSSUtils ((?))
-import CSSUtils (pair) as CSS
+import CSSUtils ((?), (&))
+import CSSUtils (pair, byClass) as CSS
 import Selectors as S
 import Colors as Colors
+import ClassNames as CN
 
 root :: CSS
 root = do
@@ -19,4 +20,9 @@ root = do
 
   S.charblock ? do
     CSS.display CSS.inlineBlock
+
+  S.charblock & (CSS.byClass CN.keyCorrect) ? do
     CSS.backgroundColor Colors.robinsEggBlue
+
+  S.charblock & (CSS.byClass CN.keyWrong) ? do
+    CSS.backgroundColor Colors.monza

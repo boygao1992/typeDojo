@@ -9,10 +9,15 @@ import Effect.Class (liftEffect)
 import Effect.Console (log) as Console
 import Effects (genRandomString)
 import Node.Express.App (App)
-import Node.Express.App (get, listenHttp) as E
+import Node.Express.App (get, use, listenHttp) as E
 import Node.Express.Handler (Handler)
-import Node.Express.Response (sendJson) as E
+import Node.Express.Response (sendJson, sendFile) as E
 import Node.Process (lookupEnv) as Node
+import Node.Express.Middleware.Static (static) as E
+
+indexHandler :: Handler
+indexHandler =
+  E.static "dist/page/"
 
 getDojoHandler :: Handler
 getDojoHandler = do
@@ -22,7 +27,9 @@ getDojoHandler = do
 appSetup :: App
 appSetup = do
   liftEffect $ Console.log "Setting up"
-  E.get "/" getDojoHandler
+  E.use indexHandler
+  E.get "/dojo" getDojoHandler
+
 
 main :: Effect Unit
 main = do

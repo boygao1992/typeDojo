@@ -6,6 +6,12 @@ character sets
 
 `yarn start`
 
+# Dojo Web (alpha)
+
+- `cd dojo-web-server`
+- `yarn start`
+- page is available at `localhost:8080`
+
 # Design
 
 Instant Feedback
