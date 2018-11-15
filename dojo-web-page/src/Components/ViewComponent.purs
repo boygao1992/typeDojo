@@ -9,7 +9,8 @@ import ClassNames as CN
 import Data.Array (snoc, takeEnd, zip) as A
 import Data.DateTime.Instant (unInstant) as Time
 import Data.Either (either)
-import Data.Foldable (traverse_, foldl)
+import Data.Foldable (traverse_)
+import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Maybe (Maybe(..))
 import Data.String (length) as String
 import Data.String.CodeUnits (dropRight, toCharArray) as String
@@ -54,6 +55,11 @@ isBackspace = (_ == "Backspace")
 isInsert :: String -> Boolean
 isInsert = (_ == "Insert")
 
+isLeft :: String -> Boolean
+isLeft = (_ == "ArrowLeft")
+
+isRight :: String -> Boolean
+isRight = (_ == "ArrowRight")
 
 -- | Types
 
@@ -63,6 +69,7 @@ type State =
   { history :: Array KeyStroke
   , input :: String
   , dojo :: String
+  , cursor :: Int
   }
 
 type KeyStroke =
@@ -75,6 +82,10 @@ data KeyMatch
   | KeyWrong
   | KeyNoInput
 derive instance eqKeyMatch :: Eq KeyMatch
+instance showKeyMatch :: Show KeyMatch where
+  show KeyCorrect = "KeyCorrect"
+  show KeyWrong = "KeyWrong"
+  show KeyNoInput = "KeyNoInput"
 
 type KeyProcessed =
   { key :: Char
@@ -85,7 +96,8 @@ initialState :: State
 initialState =
   { history : []
   , input : ""
-  , dojo : ""
+  , dojo : "\".zww?]M#=uh9F:%^qqE(W(=$D*x\"Kw7'@h+\\ELI{v?N\\$ySJ<i%\"jE.W@}u7An5:%q%{)_[_OEu#b(BxM=A$\\;25tR):dvM,:4r7&/D.X#Du_?1~F+I6Mvy(u>)]oir,YM)K5LoMQ~]#\\(kl8IO+Iv87c==;bx}Dwqa}YM4yC5/2*?%L,;_mix>ca?9%'BT4O<b!{irs]zH%mgE]wb#CM9DK{!^OH;sh&$/.E<I}].[ZDoiO6V9*p\\U@[N9\\G@.=ccW+>uc7<D<qE*rMV^^*_JZdLdP!EFTP)fnyn2gP1C\""
+  , cursor : 0
   }
 
 data Query next
@@ -99,11 +111,12 @@ type Output = Void
 type IO = Aff
 
 -- | View
-charBlock :: forall q. KeyProcessed -> H.ComponentHTML q
-charBlock { key, status} =
+charBlock :: forall q. Boolean -> KeyProcessed -> H.ComponentHTML q
+charBlock isCursor { key, status } =
   HH.span [ classList_ [ Tuple true CN.charblock
                        , Tuple (status == KeyCorrect) CN.keyCorrect
                        , Tuple (status == KeyWrong) CN.keyWrong
+                       , Tuple isCursor CN.cursor
                        ]
           ]
   [ HH.text $ showChar key]
@@ -113,10 +126,14 @@ charBlock { key, status} =
 -- | Component
 
 render :: State -> H.ComponentHTML Query
-render { input , dojo } =
+render { input , dojo , cursor } =
   HH.div_
   [ HH.p_ $
-    foldl (\acc item -> acc `A.snoc` (charBlock item)) [] processed
+    foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
+  , HH.p_
+    [ HH.text $ "input: " <> show input]
+  , HH.p_
+    [ HH.text $ "cursor: " <> show cursor]
   , HC.stylesheet  CSSRoot.root
   ]
 
@@ -153,14 +170,26 @@ eval (OnKeyDown ev reply) = do
   let key = KE.key $ ev
   when (not <<< isInsert $ key) do
     H.liftEffect $ WE.preventDefault $ KE.toEvent ev
+
   ms <- Time.unInstant <$> (H.liftEffect Time.now)
   state <- H.get
   H.modify_
     _ { history = state.history `A.snoc` { key : KE.key ev, timeStamp : ms} }
+
   when (isPrint key) do
     H.modify_ _ { input = state.input <> key }
+
   when (isBackspace key) do
     H.modify_ _ { input = String.dropRight 1 state.input}
+
+  when (isLeft key) do
+    when (state.cursor > 0) do
+      H.modify_ _ { cursor = state.cursor - 1 }
+
+  when (isRight key) do
+    when (state.cursor < String.length state.dojo - 1) do
+      H.modify_ _ { cursor = state.cursor + 1 }
+
   pure $ reply H.Listening
 
 component :: H.Component HH.HTML Query Input Output IO

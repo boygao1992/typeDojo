@@ -8,3 +8,6 @@ keyCorrect = "key-correct"
 
 keyWrong :: String
 keyWrong = "key-wrong"
+
+cursor :: String
+cursor = "cursor"

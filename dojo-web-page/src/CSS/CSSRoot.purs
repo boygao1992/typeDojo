@@ -3,7 +3,7 @@ module CSS.Root where
 import Prelude
 
 import CSS (CSS)
-import CSS (backgroundColor, body, borderBox, boxSizing, display, inlineBlock, star) as CSS
+import CSS (backgroundColor, body, border, borderBox, boxSizing, display, inlineBlock, px, solid, star) as CSS
 import CSSUtils ((?), (&))
 import CSSUtils (pair, byClass) as CSS
 import Selectors as S
@@ -26,3 +26,6 @@ root = do
 
   S.charblock & (CSS.byClass CN.keyWrong) ? do
     CSS.backgroundColor Colors.monza
+
+  S.charblock & (CSS.byClass CN.cursor) ? do
+    CSS.border CSS.solid (CSS.px 1.0) Colors.gray
