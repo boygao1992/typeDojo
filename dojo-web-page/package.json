@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "pulp build --to dist/app.js",
+    "build": "pulp build -O --to dist/app.js",
     "watch": "pulp -w build --to dist/app.js",
     "watch-fast": "webpack --mode=development --entry ./entry.js --output-path ./dist --output-filename app.js --progress --watch",
     "dev": "pulp build -O --to ../dojo-web-server/dist/page/app.js"
