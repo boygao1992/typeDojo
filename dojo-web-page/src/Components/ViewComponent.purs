@@ -79,10 +79,13 @@ isSpace = (_ == " ")
 
 type TimeStamp = Milliseconds
 
-viewTimer :: Milliseconds -> Milliseconds -> String
-viewTimer (Milliseconds init) (Milliseconds current) =
+subMilli :: Milliseconds -> Milliseconds -> Milliseconds
+subMilli (Milliseconds x) (Milliseconds y) = Milliseconds $ x - y
+
+-- TODO: use purescript-formatters
+viewTimer :: Milliseconds -> String
+viewTimer (Milliseconds ms) =
   let
-    ms = current - init
     minuteLength = 60000.0
     secondLength = 1000.0
     minutes = Math.floor (ms / minuteLength)
@@ -103,6 +106,7 @@ type State =
   , status :: Status
   , initTime :: Milliseconds
   , currentTime :: Milliseconds
+  , duration :: Milliseconds
   }
 
 data Status
@@ -143,6 +147,7 @@ initialState =
   , status : Stopped
   , initTime : mempty
   , currentTime : mempty
+  , duration : mempty
   }
 
 data Query next
@@ -172,10 +177,10 @@ charBlock isCursor { key, status } =
 -- | Component
 
 render :: State -> H.ComponentHTML Query
-render { input , dojo , cursor, status, initTime, currentTime } =
+render { input , dojo , cursor, status, initTime, currentTime, duration} =
   HH.div_
   [ HH.p_
-    [ HH.text $ viewTimer initTime currentTime]
+    [ HH.text $ viewTimer $ duration <> currentTime `subMilli` initTime ]
   , HH.p_ $
     foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
   , HH.p_
@@ -208,10 +213,6 @@ eval (Init next) = next <$ do
   window <- H.liftEffect DOM.window
   document <- H.liftEffect $ DOM.document window
   H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
-  H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
-
-  ms <- Time.unInstant <$> (H.liftEffect Time.now)
-  H.modify_ _ { initTime = ms }
 
   { body } <- H.liftAff $ AX.get AX.string url
   let dojo = either (const "") identity body
@@ -226,10 +227,10 @@ eval (OnKeyDown ev reply) = do
   when (not <<< isInsert $ key) do
     H.liftEffect $ WE.preventDefault $ KE.toEvent ev
 
-  ms <- Time.unInstant <$> (H.liftEffect Time.now)
+  currentTime <- Time.unInstant <$> (H.liftEffect Time.now)
   state <- H.get
   H.modify_
-    _ { history = state.history `A.snoc` { key : KE.key ev, timeStamp : ms} }
+    _ { history = state.history `A.snoc` { key : KE.key ev, timeStamp : currentTime} }
 
   when (isPrint key) do
     H.modify_ _ { input = state.input <> key }
@@ -248,19 +249,36 @@ eval (OnKeyDown ev reply) = do
   when (isSpace key)
     case state.status of
       Stopped -> do
-        H.modify_ _ { status = Playing, initTime = ms }
+        H.modify_ _ { status = Playing
+                    , initTime = currentTime
+                    , duration = mempty :: Milliseconds
+                    }
+        window <- H.liftEffect DOM.window
+        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
         pure unit
       Paused -> do
-        H.modify_ _ { status = Playing }
+        H.modify_ _ { status = Playing , initTime = currentTime }
+        window <- H.liftEffect DOM.window
+        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
         pure unit
       Playing -> do
+        H.modify_ \st ->
+          st { status = Paused
+                , initTime = currentTime
+                , duration = st.duration <> currentTime `subMilli` st.initTime
+                }
         H.modify_ _ { status = Paused }
         pure unit
 
   pure $ reply H.Listening
 eval (Tick ms reply) = do
-  H.modify_ _ { currentTime = ms }
-  pure $ reply H.Listening
+  status <- H.gets _.status
+  case status of
+    Stopped -> pure $ reply H.Done
+    Paused ->  pure $ reply H.Done
+    Playing -> do
+      H.modify_ _ { currentTime = ms }
+      pure $ reply H.Listening
 
 component :: H.Component HH.HTML Query Input Output IO
 component = H.lifecycleComponent spec'
