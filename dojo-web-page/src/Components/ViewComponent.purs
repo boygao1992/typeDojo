@@ -11,9 +11,10 @@ import Data.DateTime.Instant (unInstant) as Time
 import Data.Either (either)
 import Data.Foldable (traverse_)
 import Data.FoldableWithIndex (foldlWithIndex)
+import Data.Int (floor) as Int
 import Data.Maybe (Maybe(..))
 import Data.String (length) as String
-import Data.String.CodeUnits (dropRight, toCharArray) as String
+import Data.String.CodeUnits (dropRight, takeRight, toCharArray) as String
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -71,33 +72,47 @@ isLeft = (_ == "ArrowLeft")
 isRight :: String -> Boolean
 isRight = (_ == "ArrowRight")
 
+isSpace :: String -> Boolean
+isSpace = (_ == " ")
+
 -- | Types
 
 type TimeStamp = Milliseconds
 
-viewTimer :: Milliseconds -> String
-viewTimer (Milliseconds ms) =
+viewTimer :: Milliseconds -> Milliseconds -> String
+viewTimer (Milliseconds init) (Milliseconds current) =
   let
+    ms = current - init
     minuteLength = 60000.0
     secondLength = 1000.0
     minutes = Math.floor (ms / minuteLength)
     seconds = Math.floor ((ms - (minutes * minuteLength)) / secondLength)
     milliseconds = ms - (minutes * minuteLength + seconds * secondLength)
   in
-    show minutes <> " : " <> show seconds <> " : " <> show milliseconds
+       (show <<< Int.floor $ minutes)
+    <> " : "
+    <> (String.takeRight 2 <<< ("0" <> _) <<< show <<< Int.floor $ seconds)
+    <> " : "
+    <> (String.takeRight 3 <<< ("00" <> _)<<< show <<< Int.floor $ milliseconds)
 
 type State =
   { history :: Array KeyStroke
   , input :: String
   , dojo :: String
   , cursor :: Int
-  , timer :: Milliseconds
+  , status :: Status
+  , initTime :: Milliseconds
+  , currentTime :: Milliseconds
   }
 
 data Status
-  = Stoped
+  = Stopped
   | Playing
   | Paused
+instance showStatus :: Show Status where
+  show Stopped = "Stopped"
+  show Playing = "Playing"
+  show Paused = "Paused"
 
 type KeyStroke =
   { key :: String
@@ -125,7 +140,9 @@ initialState =
   , input : ""
   , dojo : "\".zww?]M#=uh9F:%^qqE(W(=$D*x\"Kw7'@h+\\ELI{v?N\\$ySJ<i%\"jE.W@}u7An5:%q%{)_[_OEu#b(BxM=A$\\;25tR):dvM,:4r7&/D.X#Du_?1~F+I6Mvy(u>)]oir,YM)K5LoMQ~]#\\(kl8IO+Iv87c==;bx}Dwqa}YM4yC5/2*?%L,;_mix>ca?9%'BT4O<b!{irs]zH%mgE]wb#CM9DK{!^OH;sh&$/.E<I}].[ZDoiO6V9*p\\U@[N9\\G@.=ccW+>uc7<D<qE*rMV^^*_JZdLdP!EFTP)fnyn2gP1C\""
   , cursor : 0
-  , timer : mempty
+  , status : Stopped
+  , initTime : mempty
+  , currentTime : mempty
   }
 
 data Query next
@@ -155,16 +172,18 @@ charBlock isCursor { key, status } =
 -- | Component
 
 render :: State -> H.ComponentHTML Query
-render { input , dojo , cursor, timer } =
+render { input , dojo , cursor, status, initTime, currentTime } =
   HH.div_
   [ HH.p_
-    [ HH.text $ viewTimer timer]
+    [ HH.text $ viewTimer initTime currentTime]
   , HH.p_ $
     foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
   , HH.p_
     [ HH.text $ "input: " <> show input]
   , HH.p_
     [ HH.text $ "cursor: " <> show cursor]
+  , HH.p_
+    [ HH.text $ "status: " <> show status]
   , HC.stylesheet  CSSRoot.root
   ]
 
@@ -190,6 +209,9 @@ eval (Init next) = next <$ do
   document <- H.liftEffect $ DOM.document window
   H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
   H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+
+  ms <- Time.unInstant <$> (H.liftEffect Time.now)
+  H.modify_ _ { initTime = ms }
 
   { body } <- H.liftAff $ AX.get AX.string url
   let dojo = either (const "") identity body
@@ -223,9 +245,21 @@ eval (OnKeyDown ev reply) = do
     when (state.cursor < String.length state.dojo - 1) do
       H.modify_ _ { cursor = state.cursor + 1 }
 
+  when (isSpace key)
+    case state.status of
+      Stopped -> do
+        H.modify_ _ { status = Playing, initTime = ms }
+        pure unit
+      Paused -> do
+        H.modify_ _ { status = Playing }
+        pure unit
+      Playing -> do
+        H.modify_ _ { status = Paused }
+        pure unit
+
   pure $ reply H.Listening
 eval (Tick ms reply) = do
-  H.modify_ _ { timer = ms }
+  H.modify_ _ { currentTime = ms }
   pure $ reply H.Listening
 
 component :: H.Component HH.HTML Query Input Output IO
