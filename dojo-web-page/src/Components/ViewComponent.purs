@@ -15,7 +15,7 @@ import Data.Int (floor) as Int
 import Data.Maybe (Maybe(..))
 import Data.String (length) as String
 import Data.String.CodeUnits (dropRight, takeRight, toCharArray) as String
-import Data.Time.Duration (Milliseconds(..))
+import Data.Time.Duration (Milliseconds(..), negateDuration)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
@@ -78,9 +78,6 @@ isSpace = (_ == " ")
 -- | Types
 
 type TimeStamp = Milliseconds
-
-subMilli :: Milliseconds -> Milliseconds -> Milliseconds
-subMilli (Milliseconds x) (Milliseconds y) = Milliseconds $ x - y
 
 -- TODO: use purescript-formatters
 viewTimer :: Milliseconds -> String
@@ -180,7 +177,7 @@ render :: State -> H.ComponentHTML Query
 render { input , dojo , cursor, status, initTime, currentTime, duration} =
   HH.div_
   [ HH.p_
-    [ HH.text $ viewTimer $ duration <> currentTime `subMilli` initTime ]
+    [ HH.text $ viewTimer $ duration <> currentTime <> (negateDuration initTime) ]
   , HH.p_ $
     foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
   , HH.p_
@@ -251,13 +248,14 @@ eval (OnKeyDown ev reply) = do
       Stopped -> do
         H.modify_ _ { status = Playing
                     , initTime = currentTime
+                    , currentTime = currentTime
                     , duration = mempty :: Milliseconds
                     }
         window <- H.liftEffect DOM.window
         H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
         pure unit
       Paused -> do
-        H.modify_ _ { status = Playing , initTime = currentTime }
+        H.modify_ _ { status = Playing , initTime = currentTime, currentTime = currentTime }
         window <- H.liftEffect DOM.window
         H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
         pure unit
@@ -265,7 +263,8 @@ eval (OnKeyDown ev reply) = do
         H.modify_ \st ->
           st { status = Paused
                 , initTime = currentTime
-                , duration = st.duration <> currentTime `subMilli` st.initTime
+                , currentTime = currentTime
+                , duration = st.duration <> currentTime <> (negateDuration st.initTime)
                 }
         H.modify_ _ { status = Paused }
         pure unit
