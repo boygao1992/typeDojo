@@ -3,16 +3,18 @@ module ViewComponent where
 import Prelude
 
 import Affjax (get, put) as AX
-import Affjax.ResponseFormat (string) as Response
 import Affjax.RequestBody (string) as Request
+import Affjax.ResponseFormat (string) as Response
 import CSS as CSS
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
 import Data.Array (snoc, takeEnd, zip) as A
 import Data.DateTime.Instant (unInstant) as Time
+import Data.Newtype (unwrap)
 import Data.Either (either)
 import Data.Foldable (traverse_)
 import Data.FoldableWithIndex (foldlWithIndex)
+import Data.Generic.Rep as Rep
 import Data.Int (floor) as Int
 import Data.Maybe (Maybe(..))
 import Data.String (length) as String
@@ -23,6 +25,7 @@ import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Now (now) as Time
 import Effect.Timer (setInterval, clearInterval) as Timer
+import Foreign.Generic (defaultOptions, genericEncodeJSON)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS as HC
@@ -110,6 +113,13 @@ type State =
   , currentTime :: Milliseconds
   , duration :: Milliseconds
   }
+
+newtype Session = Session
+  { input :: String
+  , dojo :: String
+  , duration :: Number
+  }
+derive instance repGenericSession :: Rep.Generic Session _
 
 data Status
   = Stopped
@@ -246,7 +256,14 @@ eval (OnKeyDown ev reply) = do
         , currentTime = currentTime
         , duration = state.duration <> currentTime <> (negateDuration state.initTime)
         }
-    _ <- H.liftAff $ AX.put Response.string (recordDojoUrl <> "?duration=" <> (show (state.duration <> currentTime <> (negateDuration state.initTime)))) (Request.string "")
+    _ <- H.liftAff
+         $ AX.put
+             Response.string
+             (recordDojoUrl <> "?duration=" <> (show (state.duration <> currentTime <> (negateDuration state.initTime))))
+             (Request.string
+              $ genericEncodeJSON
+                  defaultOptions { unwrapSingleConstructors = true }
+                  (Session { input : state.input, dojo: state.dojo, duration : unwrap $ state.duration <> currentTime <> (negateDuration state.initTime) }))
     pure unit
 
 

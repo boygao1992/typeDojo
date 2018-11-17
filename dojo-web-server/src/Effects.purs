@@ -55,7 +55,7 @@ persistDojoSession session = do
   doesExist <- FS.exists dir
   when (not doesExist) do
     FS.mkdir dir
-  FS.writeTextFile UTF8 (dir <> filename) session
+  FS.writeTextFile UTF8 (dir <> filename <> ".json") session
 
   where
     dir :: String

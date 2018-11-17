@@ -2,7 +2,9 @@ module Main where
 
 import Prelude
 
+import Control.Monad.Except (runExcept)
 import Data.Int (fromString) as Int
+import Data.Either (either)
 import Data.Maybe (Maybe(..), fromMaybe)
 import Effect (Effect)
 import Effect.Class (liftEffect)
@@ -13,7 +15,7 @@ import Node.Express.App (App)
 import Node.Express.App (get, put, use, listenHttp, useExternal) as E
 import Node.Express.Handler (Handler)
 import Node.Express.Middleware.Static (static) as E
-import Node.Express.Request (getQueryParam) as E
+import Node.Express.Request (getBody) as E
 import Node.Express.Response (sendJson, setStatus) as E
 import Node.Process (lookupEnv) as Node
 
@@ -33,16 +35,10 @@ getDojoHandler = do
 
 createRecordHandler :: Handler
 createRecordHandler = do
-  -- bodyParam <- E.getBody :: HandlerM (F String)
-  -- let body = either (const "") identity $ runExcept bodyParam
-  -- liftEffect $ Console.log $ "body: " <> body
-  -- liftEffect $ persistDojoSession body
-  durationParam <- E.getQueryParam "duration"
-  case durationParam of
-    Nothing ->
-      respondError "Duration is required."
-    Just duration ->
-      liftEffect $ persistDojoSession duration
+  bodyParam <- E.getBody
+  let body = either (const "") identity $ runExcept (bodyParam :: _ String)
+  liftEffect $ Console.log $ "body: " <> body
+  liftEffect $ persistDojoSession body
   E.sendJson { status: "Recorded" }
 
 appSetup :: App
