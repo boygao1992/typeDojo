@@ -2,8 +2,9 @@ module ViewComponent where
 
 import Prelude
 
-import Affjax (get) as AX
-import Affjax.ResponseFormat (string) as AX
+import Affjax (get, put) as AX
+import Affjax.ResponseFormat (string) as Response
+import Affjax.RequestBody (string) as Request
 import CSS as CSS
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
@@ -20,7 +21,6 @@ import Data.Time.Duration (Milliseconds(..), negateDuration)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Effect.Console (log) as Console
 import Effect.Now (now) as Time
 import Effect.Timer (setInterval, clearInterval) as Timer
 import Halogen as H
@@ -221,7 +221,7 @@ eval (Init next) = next <$ do
   document <- H.liftEffect $ DOM.document window
   H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
 
-  { body } <- H.liftAff $ AX.get AX.string url
+  { body } <- H.liftAff $ AX.get Response.string url
   let dojo = either (const "") identity body
   H.modify_ _ { dojo = dojo }
 
@@ -246,7 +246,8 @@ eval (OnKeyDown ev reply) = do
         , currentTime = currentTime
         , duration = state.duration <> currentTime <> (negateDuration state.initTime)
         }
-    H.liftEffect $ Console.log "end"
+    _ <- H.liftAff $ AX.put Response.string (recordDojoUrl <> "?duration=" <> (show (state.duration <> currentTime <> (negateDuration state.initTime)))) (Request.string "")
+    pure unit
 
 
   when (isPrint key) do
@@ -254,7 +255,6 @@ eval (OnKeyDown ev reply) = do
       H.modify_ _ { input = state.input <> key }
 
     when (state.status == Stopped) do
-      H.liftEffect $ Console.log "start"
       H.modify_ _ { status = Playing
                   , initTime = currentTime
                   , currentTime = currentTime
@@ -294,6 +294,11 @@ eval (OnKeyDown ev reply) = do
         pure unit
 
   pure $ reply H.Listening
+
+  where
+    recordDojoUrl :: String
+    recordDojoUrl = "/dojo/record"
+
 eval (Tick ms reply) = do
   status <- H.gets _.status
   case status of
