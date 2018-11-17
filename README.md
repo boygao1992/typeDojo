@@ -31,7 +31,14 @@ Mode
 - review session (replay, statistics, annotation)
 - RPG (against imaginary boss, life point, attack, levels, etc.)
   - dungeon explore
+    - people sharing the same world map
+    - pairing active users by effort (time investment, improvement, playbook, etc.)
   - # of corrects - # of errors = # of steps available
+  
+similar idea ~ make data labeling fun to play
+- feedback: users' own effort improves AI-powered system that directly affects the user experience
+  - users will be divided into isolated groups to test out multiple configurations / evolution tracks
+  - dialogue bot (NLP), NPC strategies (reinforcement learning), player pairing/recommendation
   
 [Dungeons TOME](https://www.dungeonstome.com/)
 

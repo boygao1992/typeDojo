@@ -270,15 +270,25 @@ eval (OnKeyDown ev reply) = do
   when (isPrint key) do
     when (String.length state.input < String.length state.dojo) do
       H.modify_ _ { input = state.input <> key }
-
-    when (state.status == Stopped) do
-      H.modify_ _ { status = Playing
-                  , initTime = currentTime
-                  , currentTime = currentTime
-                  , duration = mempty :: Milliseconds
-                  }
-      window <- H.liftEffect DOM.window
-      H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+    case state.status of
+      Playing -> pure unit
+      Stopped -> do
+        H.modify_
+          _ { status = Playing
+            , initTime = currentTime
+            , currentTime = currentTime
+            , duration = mempty :: Milliseconds
+            }
+        window <- H.liftEffect DOM.window
+        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+      Paused -> do
+        H.modify_
+          _ { status = Playing
+            , initTime = currentTime
+            , currentTime = currentTime
+            }
+        window <- H.liftEffect DOM.window
+        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
 
   when (isBackspace key) do
     H.modify_ _ { input = String.dropRight 1 state.input}
@@ -294,19 +304,24 @@ eval (OnKeyDown ev reply) = do
   when (isSpace key)
     case state.status of
       Stopped -> do
-        pure unit
+        H.modify_ _ { status = Playing
+                    , initTime = currentTime
+                    , currentTime = currentTime
+                    , duration = mempty :: Milliseconds
+                    }
+        window <- H.liftEffect DOM.window
+        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
       Paused -> do
         H.modify_ _ { status = Playing , initTime = currentTime, currentTime = currentTime }
         window <- H.liftEffect DOM.window
         H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
-        pure unit
       Playing -> do
         H.modify_ \st ->
           st { status = Paused
-                , initTime = currentTime
-                , currentTime = currentTime
-                , duration = st.duration <> currentTime <> (negateDuration st.initTime)
-                }
+             , initTime = currentTime
+             , currentTime = currentTime
+             , duration = st.duration <> currentTime <> (negateDuration st.initTime)
+             }
         H.modify_ _ { status = Paused }
         pure unit
 
