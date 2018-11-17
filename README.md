@@ -3,6 +3,12 @@ typing exercises
 character sets 
 - Numeric characters (`0123456789`)
 - Special characters (`~!@#$%^&()_+-={}[];\',.`, `*|` missing)
+- Alphabet
+  - `a - z`
+  - `A - Z`
+    - left hand `shift` + right hand `a - z`
+    - right hand `shift` + left hand `a - z`
+    
 
 `yarn start`
 
@@ -111,6 +117,13 @@ An exception: `6` or `^` is right in the middle of left and right hands.
 When typing a sequence like `^6^`, there is no need to switch hands but press and release `shift` by the same hand.
 
 # Records
+
+## dojo-web with full charset (# = 500)
+
+2018-11-17-1 4min 49s
+
+## Archive
+
 2018-11-15-1 3min 33s
 
 2018-11-14-1 3min 49s
