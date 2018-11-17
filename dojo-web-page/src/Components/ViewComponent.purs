@@ -4,6 +4,7 @@ import Prelude
 
 import Affjax (get) as AX
 import Affjax.ResponseFormat (string) as AX
+import CSS as CSS
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
 import Data.Array (snoc, takeEnd, zip) as A
@@ -19,6 +20,7 @@ import Data.Time.Duration (Milliseconds(..), negateDuration)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
+import Effect.Console (log) as Console
 import Effect.Now (now) as Time
 import Effect.Timer (setInterval, clearInterval) as Timer
 import Halogen as H
@@ -75,6 +77,9 @@ isRight = (_ == "ArrowRight")
 isSpace :: String -> Boolean
 isSpace = (_ == " ")
 
+isEnter :: String -> Boolean
+isEnter = (_ == "Enter")
+
 -- | Types
 
 type TimeStamp = Milliseconds
@@ -110,6 +115,7 @@ data Status
   = Stopped
   | Playing
   | Paused
+derive instance eqStatus :: Eq Status
 instance showStatus :: Show Status where
   show Stopped = "Stopped"
   show Playing = "Playing"
@@ -139,7 +145,7 @@ initialState :: State
 initialState =
   { history : []
   , input : ""
-  , dojo : "\".zww?]M#=uh9F:%^qqE(W(=$D*x\"Kw7'@h+\\ELI{v?N\\$ySJ<i%\"jE.W@}u7An5:%q%{)_[_OEu#b(BxM=A$\\;25tR):dvM,:4r7&/D.X#Du_?1~F+I6Mvy(u>)]oir,YM)K5LoMQ~]#\\(kl8IO+Iv87c==;bx}Dwqa}YM4yC5/2*?%L,;_mix>ca?9%'BT4O<b!{irs]zH%mgE]wb#CM9DK{!^OH;sh&$/.E<I}].[ZDoiO6V9*p\\U@[N9\\G@.=ccW+>uc7<D<qE*rMV^^*_JZdLdP!EFTP)fnyn2gP1C\""
+  , dojo : "123"
   , cursor : 0
   , status : Stopped
   , initTime : mempty
@@ -180,8 +186,12 @@ render { input , dojo , cursor, status, initTime, currentTime, duration} =
     [ HH.text $ viewTimer $ duration <> currentTime <> (negateDuration initTime) ]
   , HH.p_ $
     foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
-  , HH.p_
-    [ HH.text $ "input: " <> show input]
+  , HH.p [ HC.style do
+              CSS.display CSS.displayNone
+              when (String.length input == String.length dojo) do
+                CSS.display CSS.block
+         ]
+    [ HH.text $ "Enter to submit"]
   , HH.p_
     [ HH.text $ "cursor: " <> show cursor]
   , HH.p_
@@ -229,8 +239,29 @@ eval (OnKeyDown ev reply) = do
   H.modify_
     _ { history = state.history `A.snoc` { key : KE.key ev, timeStamp : currentTime} }
 
+  when (isEnter key && state.status == Playing && (String.length state.input == String.length state.dojo)) do
+    H.modify_
+      _ { status = Stopped
+        , initTime = currentTime
+        , currentTime = currentTime
+        , duration = state.duration <> currentTime <> (negateDuration state.initTime)
+        }
+    H.liftEffect $ Console.log "end"
+
+
   when (isPrint key) do
-    H.modify_ _ { input = state.input <> key }
+    when (String.length state.input < String.length state.dojo) do
+      H.modify_ _ { input = state.input <> key }
+
+    when (state.status == Stopped) do
+      H.liftEffect $ Console.log "start"
+      H.modify_ _ { status = Playing
+                  , initTime = currentTime
+                  , currentTime = currentTime
+                  , duration = mempty :: Milliseconds
+                  }
+      window <- H.liftEffect DOM.window
+      H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
 
   when (isBackspace key) do
     H.modify_ _ { input = String.dropRight 1 state.input}
@@ -246,13 +277,6 @@ eval (OnKeyDown ev reply) = do
   when (isSpace key)
     case state.status of
       Stopped -> do
-        H.modify_ _ { status = Playing
-                    , initTime = currentTime
-                    , currentTime = currentTime
-                    , duration = mempty :: Milliseconds
-                    }
-        window <- H.liftEffect DOM.window
-        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
         pure unit
       Paused -> do
         H.modify_ _ { status = Playing , initTime = currentTime, currentTime = currentTime }
