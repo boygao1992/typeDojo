@@ -1,6 +1,8 @@
 module Types where
 
 import Data.Array (length) as A
+import Random.PseudoRandom (Seed)
+import Effect.Ref (Ref)
 
 -- | Data Model
 
@@ -28,10 +30,14 @@ charSetSize :: Int
 charSetSize = A.length charSet
 
 type State =
-  { dojo :: Array Char
+  { dojo :: String
+  , seed :: Seed
   }
 
-initialState :: State
-initialState =
-  { dojo : []
+initialState :: Seed -> State
+initialState seed =
+  { dojo : ""
+  , seed
   }
+
+type StateRef = Ref State

@@ -2,7 +2,7 @@
   "scripts": {
     "start": "node dist/app.js",
     "build": "pulp build -O --to dist/app.js",
-    "dev": "yarn build && yarn start"
+    "dev": "pulp build --to dist/app.js && yarn start"
   },
   "name": "dojo-web-server",
   "version": "1.0.0",

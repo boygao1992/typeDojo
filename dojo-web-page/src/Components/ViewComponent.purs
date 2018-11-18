@@ -18,7 +18,7 @@ import Data.Generic.Rep as Rep
 import Data.Int (floor) as Int
 import Data.Maybe (Maybe(..))
 import Data.String (length) as String
-import Data.String.CodeUnits (dropRight, takeRight, toCharArray) as String
+import Data.String.CodeUnits (drop, dropRight, takeRight, toCharArray) as String
 import Data.Time.Duration (Milliseconds(..), negateDuration)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -231,7 +231,10 @@ eval (Init next) = next <$ do
   H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
 
   { body } <- H.liftAff $ AX.get Response.string url
-  let dojo = either (const "") identity body
+  let dojo = String.dropRight 1
+              <<< String.drop 1
+              <<< either (const "") identity
+                $ body
   H.modify_ _ { dojo = dojo }
 
   where
