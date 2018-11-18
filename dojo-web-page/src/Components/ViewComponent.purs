@@ -54,8 +54,7 @@ addOnKeyDownEventListener document fn = do
 addTimer :: Window -> (Milliseconds -> Effect Unit) -> Effect (Effect Unit)
 addTimer window fn = do
   id <- Timer.setInterval 50 do
-    _ <- DOM.requestAnimationFrame (fn =<< Time.unInstant <$> Time.now) window
-    pure unit
+    void $ DOM.requestAnimationFrame (fn =<< Time.unInstant <$> Time.now) window
   pure $ Timer.clearInterval id
 
 -- | Predicates
@@ -256,7 +255,8 @@ eval (OnKeyDown ev reply) = do
         , currentTime = currentTime
         , duration = state.duration <> currentTime <> (negateDuration state.initTime)
         }
-    _ <- H.liftAff
+    -- TODO: response validation
+    void $ H.liftAff
          $ AX.put
              Response.string
              (recordDojoUrl <> "?duration=" <> (show (state.duration <> currentTime <> (negateDuration state.initTime))))
