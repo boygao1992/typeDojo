@@ -9,21 +9,22 @@ import CSS as CSS
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
 import Data.Array (snoc, takeEnd, zip) as A
-import Data.DateTime.Instant (unInstant) as Time
-import Data.Newtype (unwrap)
 import Data.Either (either)
 import Data.Foldable (traverse_)
 import Data.FoldableWithIndex (foldlWithIndex)
 import Data.Generic.Rep as Rep
 import Data.Int (floor) as Int
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Newtype (unwrap)
 import Data.String (length) as String
 import Data.String.CodeUnits (drop, dropRight, takeRight, toCharArray) as String
-import Data.Time.Duration (Milliseconds(..), negateDuration)
+import Data.Time (Time)
+import Data.Time (diff) as Time
+import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Effect.Now (now) as Time
+import Effect.Now (nowTime) as Now
 import Effect.Timer (setInterval, clearInterval) as Timer
 import Foreign.Generic (defaultOptions, genericEncodeJSON)
 import Halogen as H
@@ -51,10 +52,10 @@ addOnKeyDownEventListener document fn = do
   WE.addEventListener KE.keydown listener false target
   pure $ WE.removeEventListener KE.keydown listener false target
 
-addTimer :: Window -> (Milliseconds -> Effect Unit) -> Effect (Effect Unit)
+addTimer :: Window -> (Time -> Effect Unit) -> Effect (Effect Unit)
 addTimer window fn = do
   id <- Timer.setInterval 50 do
-    void $ DOM.requestAnimationFrame (fn =<< Time.unInstant <$> Time.now) window
+    void $ DOM.requestAnimationFrame (fn =<< Now.nowTime) window
   pure $ Timer.clearInterval id
 
 -- | Predicates
@@ -84,7 +85,7 @@ isEnter = (_ == "Enter")
 
 -- | Types
 
-type TimeStamp = Milliseconds
+type TimeStamp = Time
 
 -- TODO: use purescript-formatters
 viewTimer :: Milliseconds -> String
@@ -108,8 +109,8 @@ type State =
   , dojo :: String
   , cursor :: Int
   , status :: Status
-  , initTime :: Milliseconds
-  , currentTime :: Milliseconds
+  , initTime :: Maybe Time
+  , currentTime :: Maybe Time
   , duration :: Milliseconds
   }
 
@@ -133,6 +134,7 @@ instance showStatus :: Show Status where
 type KeyStroke =
   { key :: String
   , timeStamp :: TimeStamp
+  , status :: Status
   }
 
 data KeyMatch
@@ -157,15 +159,15 @@ initialState =
   , dojo : "123"
   , cursor : 0
   , status : Stopped
-  , initTime : mempty
-  , currentTime : mempty
+  , initTime : Nothing
+  , currentTime : Nothing
   , duration : mempty
   }
 
 data Query next
   = Init next
   | OnKeyDown KE.KeyboardEvent (H.SubscribeStatus -> next)
-  | Tick Milliseconds (H.SubscribeStatus -> next)
+  | Tick Time (H.SubscribeStatus -> next)
 
 type Input = Unit
 
@@ -184,15 +186,17 @@ charBlock isCursor { key, status } =
           ]
   [ HH.text $ showChar key]
 
-
-
 -- | Component
+
+interval :: Maybe Time -> Maybe Time -> Milliseconds
+interval initTime currentTime =
+  fromMaybe mempty $ (Time.diff) <$> currentTime <*> initTime
 
 render :: State -> H.ComponentHTML Query
 render { input , dojo , cursor, status, initTime, currentTime, duration} =
   HH.div_
   [ HH.p_
-    [ HH.text $ viewTimer $ duration <> currentTime <> (negateDuration initTime) ]
+    [ HH.text $ viewTimer $ duration <> interval initTime currentTime ]
   , HH.p_ $
     foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
   , HH.p [ HC.style do
@@ -246,13 +250,14 @@ eval (OnKeyDown ev reply) = do
   when (not <<< isInsert $ key) do
     H.liftEffect <<< WE.preventDefault <<< KE.toEvent $ ev
 
-  currentTime <- Time.unInstant <$> (H.liftEffect Time.now)
+  currentTime <- H.liftEffect Now.nowTime
 
   state <- H.get
   H.modify_
     _ { history = state.history
           `A.snoc` { key : KE.key ev
                    , timeStamp : currentTime
+                   , status : state.status
                    }
       }
 
@@ -260,36 +265,25 @@ eval (OnKeyDown ev reply) = do
         && state.status == Playing
         && (String.length state.input == String.length state.dojo)
        ) do
+    let duration = state.duration <> interval state.initTime (Just currentTime)
     H.modify_
       _ { status = Stopped
-        , initTime = currentTime
-        , currentTime = currentTime
-        , duration = state.duration
-                     <> currentTime
-                     <> (negateDuration state.initTime)
+        , initTime = Just currentTime
+        , currentTime = Just currentTime
+        , duration = duration
         }
     -- TODO: response validation
     void $ H.liftAff
          $ AX.put
             Response.string
-            ( recordDojoUrl
-              <> "?duration="
-              <> (show
-                  $ state.duration
-                    <> currentTime
-                    <> (negateDuration state.initTime)
-                )
-            )
+            recordDojoUrl
             ( Request.string
             <<< genericEncodeJSON
                   (defaultOptions { unwrapSingleConstructors = true })
               $ (Session
                   { input : state.input
                   , dojo: state.dojo
-                  , duration : unwrap
-                      $ state.duration
-                        <> currentTime
-                        <> (negateDuration state.initTime)
+                  , duration : unwrap duration
                   }
               )
             )
@@ -303,8 +297,8 @@ eval (OnKeyDown ev reply) = do
       Stopped -> do
         H.modify_
           _ { status = Playing
-            , initTime = currentTime
-            , currentTime = currentTime
+            , initTime = Just currentTime
+            , currentTime = Just currentTime
             , duration = mempty :: Milliseconds
             }
         startTimer
@@ -312,8 +306,8 @@ eval (OnKeyDown ev reply) = do
       Paused -> do
         H.modify_
           _ { status = Playing
-            , initTime = currentTime
-            , currentTime = currentTime
+            , initTime = Just currentTime
+            , currentTime = Just currentTime
             }
         startTimer
 
@@ -333,8 +327,8 @@ eval (OnKeyDown ev reply) = do
       Stopped -> do
         H.modify_
           _ { status = Playing
-            , initTime = currentTime
-            , currentTime = currentTime
+            , initTime = Just currentTime
+            , currentTime = Just currentTime
             , duration = mempty :: Milliseconds
             }
         startTimer
@@ -342,19 +336,18 @@ eval (OnKeyDown ev reply) = do
       Paused -> do
         H.modify_
           _ { status = Playing
-            , initTime = currentTime
-            , currentTime = currentTime
+            , initTime = Just currentTime
+            , currentTime = Just currentTime
             }
         startTimer
 
       Playing -> do
         H.modify_ \st ->
           st { status = Paused
-             , initTime = currentTime
-             , currentTime = currentTime
-             , duration = st.duration
-                          <> currentTime
-                          <> (negateDuration st.initTime)
+             , initTime = Just currentTime
+             , currentTime = Just currentTime
+             , duration = state.duration
+                          <> interval state.initTime (Just currentTime)
              }
 
   pure $ reply H.Listening
@@ -368,13 +361,13 @@ eval (OnKeyDown ev reply) = do
       window <- H.liftEffect DOM.window
       H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
 
-eval (Tick ms reply) = do
+eval (Tick currentTime reply) = do
   status <- H.gets _.status
   case status of
     Stopped -> pure $ reply H.Done
     Paused ->  pure $ reply H.Done
     Playing -> do
-      H.modify_ _ { currentTime = ms }
+      H.modify_ _ { currentTime = Just currentTime }
       pure $ reply H.Listening
 
 
