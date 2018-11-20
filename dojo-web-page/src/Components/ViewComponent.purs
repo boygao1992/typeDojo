@@ -8,7 +8,7 @@ import Affjax.ResponseFormat (string) as Response
 import CSS as CSS
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
-import Data.Array (snoc, takeEnd, zip) as A
+import Data.Array (modifyAt, snoc, takeEnd, zip) as A
 import Data.Either (either)
 import Data.Foldable (traverse_)
 import Data.FoldableWithIndex (foldlWithIndex)
@@ -43,6 +43,14 @@ import Web.HTML.Window (Window)
 import Web.HTML.Window (document, requestAnimationFrame) as DOM
 import Web.UIEvent.KeyboardEvent (KeyboardEvent, fromEvent, key, toEvent) as KE
 import Web.UIEvent.KeyboardEvent.EventTypes (keydown) as KE
+
+-- | Utils
+interval :: Maybe Time -> Maybe Time -> Milliseconds
+interval initTime currentTime =
+  fromMaybe mempty $ (Time.diff) <$> currentTime <*> initTime
+
+modifyAt :: forall a. Int -> (a -> a) -> Array a -> Array a
+modifyAt n f arr = fromMaybe arr $ A.modifyAt n f arr
 
 -- | Effect
 addOnKeyDownEventListener :: HTMLDocument -> (KE.KeyboardEvent -> Effect Unit) -> Effect (Effect Unit)
@@ -83,6 +91,8 @@ isSpace = (_ == " ")
 isEnter :: String -> Boolean
 isEnter = (_ == "Enter")
 
+-- TODO isDojoCompleted :: Array DojoChar -> Boolean
+
 -- | Types
 
 type TimeStamp = Time
@@ -103,10 +113,11 @@ viewTimer (Milliseconds ms) =
     <> " : "
     <> (String.takeRight 3 <<< ("00" <> _)<<< show <<< Int.floor $ milliseconds)
 
+-- TODO merge input into dojo
 type State =
   { history :: Array KeyStroke
   , input :: String
-  , dojo :: String
+  , dojo :: String -- Array DojoChar
   , cursor :: Int
   , status :: Status
   , initTime :: Maybe Time
@@ -137,14 +148,20 @@ type KeyStroke =
   , status :: Status
   }
 
+-- TODO
+-- type DojoChar =
+--   { char :: Char
+--   , status :: KeyMatch
+--   }
+
 data KeyMatch
   = KeyCorrect
-  | KeyWrong
+  | KeyWrong Char
   | KeyNoInput
 derive instance eqKeyMatch :: Eq KeyMatch
 instance showKeyMatch :: Show KeyMatch where
   show KeyCorrect = "KeyCorrect"
-  show KeyWrong = "KeyWrong"
+  show (KeyWrong c) = "KeyWrong: " <> show c
   show KeyNoInput = "KeyNoInput"
 
 type KeyProcessed =
@@ -178,19 +195,20 @@ type IO = Aff
 -- | View
 charBlock :: forall q. Boolean -> KeyProcessed -> H.ComponentHTML q
 charBlock isCursor { key, status } =
-  HH.span [ classList_ [ Tuple true CN.charblock
-                       , Tuple (status == KeyCorrect) CN.keyCorrect
-                       , Tuple (status == KeyWrong) CN.keyWrong
-                       , Tuple isCursor CN.cursor
-                       ]
+  HH.span [ classList_
+            $ [ Tuple true CN.charblock
+              , Tuple isCursor CN.cursor
+              ]
+              `A.snoc`
+              ( case status of
+                  KeyCorrect -> Tuple true CN.keyCorrect
+                  KeyWrong _ -> Tuple true CN.keyWrong
+                  KeyNoInput -> Tuple false ""
+              )
           ]
   [ HH.text $ showChar key]
 
 -- | Component
-
-interval :: Maybe Time -> Maybe Time -> Milliseconds
-interval initTime currentTime =
-  fromMaybe mempty $ (Time.diff) <$> currentTime <*> initTime
 
 render :: State -> H.ComponentHTML Query
 render { input , dojo , cursor, status, initTime, currentTime, duration} =
@@ -201,6 +219,7 @@ render { input , dojo , cursor, status, initTime, currentTime, duration} =
     foldlWithIndex (\idx acc item -> acc `A.snoc` (charBlock (cursor == idx) item)) [] processed
   , HH.p [ HC.style do
               CSS.display CSS.displayNone
+              -- TODO when (isDojoCompleted dojo) do
               when (String.length input == String.length dojo) do
                 CSS.display CSS.block
          ]
@@ -225,7 +244,11 @@ render { input , dojo , cursor, status, initTime, currentTime, duration} =
        ( (\d -> { key : d, status : KeyNoInput })
          <$> A.takeEnd (String.length dojo - String.length input) _dojo)
       )
-      $ (\(Tuple i d) -> if i == d then { key : d , status : KeyCorrect } else { key : d , status : KeyWrong })
+      $ (\(Tuple i d) ->
+          if i == d
+          then { key : d , status : KeyCorrect }
+          else { key : d , status : KeyWrong i }
+        )
       <$> A.zip _input _dojo
 
 eval :: Query ~> H.ComponentDSL State Query Output IO
