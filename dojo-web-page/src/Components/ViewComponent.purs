@@ -244,37 +244,62 @@ eval (Init next) = next <$ do
 eval (OnKeyDown ev reply) = do
   let key = KE.key $ ev
   when (not <<< isInsert $ key) do
-    H.liftEffect $ WE.preventDefault $ KE.toEvent ev
+    H.liftEffect <<< WE.preventDefault <<< KE.toEvent $ ev
 
   currentTime <- Time.unInstant <$> (H.liftEffect Time.now)
+
   state <- H.get
   H.modify_
-    _ { history = state.history `A.snoc` { key : KE.key ev, timeStamp : currentTime} }
+    _ { history = state.history
+          `A.snoc` { key : KE.key ev
+                   , timeStamp : currentTime
+                   }
+      }
 
-  when (isEnter key && state.status == Playing && (String.length state.input == String.length state.dojo)) do
+  when (isEnter key
+        && state.status == Playing
+        && (String.length state.input == String.length state.dojo)
+       ) do
     H.modify_
       _ { status = Stopped
         , initTime = currentTime
         , currentTime = currentTime
-        , duration = state.duration <> currentTime <> (negateDuration state.initTime)
+        , duration = state.duration
+                     <> currentTime
+                     <> (negateDuration state.initTime)
         }
     -- TODO: response validation
     void $ H.liftAff
          $ AX.put
-             Response.string
-             (recordDojoUrl <> "?duration=" <> (show (state.duration <> currentTime <> (negateDuration state.initTime))))
-             (Request.string
-              $ genericEncodeJSON
-                  defaultOptions { unwrapSingleConstructors = true }
-                  (Session { input : state.input, dojo: state.dojo, duration : unwrap $ state.duration <> currentTime <> (negateDuration state.initTime) }))
-    pure unit
+            Response.string
+            ( recordDojoUrl
+              <> "?duration="
+              <> (show
+                  $ state.duration
+                    <> currentTime
+                    <> (negateDuration state.initTime)
+                )
+            )
+            ( Request.string
+            <<< genericEncodeJSON
+                  (defaultOptions { unwrapSingleConstructors = true })
+              $ (Session
+                  { input : state.input
+                  , dojo: state.dojo
+                  , duration : unwrap
+                      $ state.duration
+                        <> currentTime
+                        <> (negateDuration state.initTime)
+                  }
+              )
+            )
 
 
   when (isPrint key) do
     when (String.length state.input < String.length state.dojo) do
       H.modify_ _ { input = state.input <> key }
+
     case state.status of
-      Playing -> pure unit
       Stopped -> do
         H.modify_
           _ { status = Playing
@@ -282,57 +307,66 @@ eval (OnKeyDown ev reply) = do
             , currentTime = currentTime
             , duration = mempty :: Milliseconds
             }
-        window <- H.liftEffect DOM.window
-        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+        startTimer
+
       Paused -> do
         H.modify_
           _ { status = Playing
             , initTime = currentTime
             , currentTime = currentTime
             }
-        window <- H.liftEffect DOM.window
-        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+        startTimer
+
+      Playing -> pure unit
 
   when (isBackspace key) do
     H.modify_ _ { input = String.dropRight 1 state.input}
 
-  when (isLeft key) do
-    when (state.cursor > 0) do
-      H.modify_ _ { cursor = state.cursor - 1 }
+  when ((isLeft key) && (state.cursor > 0)) do
+    H.modify_ _ { cursor = state.cursor - 1 }
 
-  when (isRight key) do
-    when (state.cursor < String.length state.dojo - 1) do
-      H.modify_ _ { cursor = state.cursor + 1 }
+  when ((isRight key) && (state.cursor < String.length state.dojo - 1)) do
+    H.modify_ _ { cursor = state.cursor + 1 }
 
   when (isSpace key)
     case state.status of
       Stopped -> do
-        H.modify_ _ { status = Playing
-                    , initTime = currentTime
-                    , currentTime = currentTime
-                    , duration = mempty :: Milliseconds
-                    }
-        window <- H.liftEffect DOM.window
-        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+        H.modify_
+          _ { status = Playing
+            , initTime = currentTime
+            , currentTime = currentTime
+            , duration = mempty :: Milliseconds
+            }
+        startTimer
+
       Paused -> do
-        H.modify_ _ { status = Playing , initTime = currentTime, currentTime = currentTime }
-        window <- H.liftEffect DOM.window
-        H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
+        H.modify_
+          _ { status = Playing
+            , initTime = currentTime
+            , currentTime = currentTime
+            }
+        startTimer
+
       Playing -> do
         H.modify_ \st ->
           st { status = Paused
              , initTime = currentTime
              , currentTime = currentTime
-             , duration = st.duration <> currentTime <> (negateDuration st.initTime)
+             , duration = st.duration
+                          <> currentTime
+                          <> (negateDuration st.initTime)
              }
-        H.modify_ _ { status = Paused }
-        pure unit
 
   pure $ reply H.Listening
 
   where
     recordDojoUrl :: String
     recordDojoUrl = "/dojo/record"
+
+    startTimer :: H.ComponentDSL State Query Output IO Unit
+    startTimer = do
+      window <- H.liftEffect DOM.window
+      H.subscribe $ HES.eventSource' (addTimer window) (Just <<< H.request <<< Tick)
 
 eval (Tick ms reply) = do
   status <- H.gets _.status
@@ -342,6 +376,8 @@ eval (Tick ms reply) = do
     Playing -> do
       H.modify_ _ { currentTime = ms }
       pure $ reply H.Listening
+
+
 
 component :: H.Component HH.HTML Query Input Output IO
 component = H.lifecycleComponent spec'
