@@ -39,7 +39,7 @@ Mode
   - dungeon explore
     - people sharing the same world map
     - pairing active users by effort (time investment, improvement, playbook, etc.)
-  - # of corrects - # of errors = # of steps available
+  - `#` of corrects - `#` of errors = `#` of steps available
   
 similar idea ~ make data labeling fun to play
 - feedback: users' own effort improves AI-powered system that directly affects the user experience
@@ -119,6 +119,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 # Records
 
 ## dojo-web with full charset (# = 500)
+
+2018-11-23-1 3min 50s
 
 2018-11-22-2 4min 06s
 
