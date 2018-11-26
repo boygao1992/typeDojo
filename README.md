@@ -50,6 +50,8 @@ similar idea ~ make data labeling fun to play
 
 [sightreading.training — A tool for learning to sight-read sheet music](https://github.com/leafo/sightreading.training)
 
+connection to music streaming services
+
 ## Statistics
 
 Global
@@ -119,6 +121,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 # Records
 
 ## dojo-web with full charset (# = 500)
+
+2018-11-26-1 3min 58s
 
 2018-11-25-1 3min 53s
 
