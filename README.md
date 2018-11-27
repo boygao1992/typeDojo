@@ -122,6 +122,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 
 ## dojo-web with full charset (# = 500)
 
+2018-11-27-1 3min 49s
+
 2018-11-26-2 3min 39s
 
 2018-11-26-1 3min 58s
