@@ -46,6 +46,9 @@ similar idea ~ make data labeling fun to play
   - users will be divided into isolated groups to test out multiple configurations / evolution tracks
   - dialogue bot (NLP), NPC strategies (reinforcement learning), player pairing/recommendation
   
+picture bounding box labeling
+- memory game: recall the position
+  
 [Dungeons TOME](https://www.dungeonstome.com/)
 
 [sightreading.training — A tool for learning to sight-read sheet music](https://github.com/leafo/sightreading.training)
@@ -121,6 +124,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 # Records
 
 ## dojo-web with full charset (# = 500)
+
+2018-11-27-2 3min 48s
 
 2018-11-27-1 3min 49s
 
