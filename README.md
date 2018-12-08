@@ -125,6 +125,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 
 ## dojo-web with full charset (# = 500)
 
+2018-12-08-1 3min 46s
+
 2018-12-07-1 3min 50s
 
 2018-12-06-1 3min 49s
@@ -687,3 +689,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 
 2018-06-22-1 7min 36s
 
+
+# Bug
+
+2018-12-08
+escape symbol, `\`, is in the parsed string.
