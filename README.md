@@ -696,5 +696,6 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 
 # Bug
 
-2018-12-08
-escape symbol, `\`, is in the parsed string.
+Fixed, 2018-12-09
+~~2018-12-08
+Parsed response string from `purescript-affjax` contains quotes and escape token (`\`).~~

@@ -8,7 +8,7 @@ import Affjax.ResponseFormat (string) as Response
 import CSS as CSS
 import CSS.Root (root) as CSSRoot
 import ClassNames as CN
-import Data.Array (modifyAt, snoc, takeEnd, zip) as A
+import Data.Array (cons, filter, modifyAt, snoc, takeEnd, zip) as A
 import Data.Either (either)
 import Data.Foldable (traverse_)
 import Data.FoldableWithIndex (foldlWithIndex)
@@ -16,12 +16,14 @@ import Data.Generic.Rep as Rep
 import Data.Int (floor) as Int
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
+import Data.Profunctor.Strong ((&&&))
 import Data.String (length) as String
-import Data.String.CodeUnits (drop, dropRight, takeRight, toCharArray) as String
+import Data.String.CodeUnits (drop, dropRight, fromCharArray, takeRight, toCharArray) as String
 import Data.Time (Time)
 import Data.Time (diff) as Time
 import Data.Time.Duration (Milliseconds(..))
-import Data.Tuple (Tuple(..))
+import Data.Tuple (Tuple(..), uncurry)
+import Data.Tuple (fst) as Tuple
 import Effect (Effect)
 import Effect.Aff (Aff)
 import Effect.Now (nowTime) as Now
@@ -51,6 +53,30 @@ interval initTime currentTime =
 
 modifyAt :: forall a. Int -> (a -> a) -> Array a -> Array a
 modifyAt n f arr = fromMaybe arr $ A.modifyAt n f arr
+
+
+data Token
+  = StartToken
+  | RegularToken Char
+
+removeEscapeChar :: String -> String
+removeEscapeChar =
+      String.fromCharArray
+  <<< map Tuple.fst
+  <<< A.filter escapeFilter
+  <<< uncurry A.zip
+  <<< ( identity &&& (A.cons StartToken <<< map RegularToken) )
+  <<< String.toCharArray
+
+  where
+    escapeFilter :: Tuple Char Token -> Boolean
+    escapeFilter (Tuple char (RegularToken token))
+      | char == '\\' && token == '\\' = true
+      | char == '\\' = false
+      | otherwise = true
+    escapeFilter (Tuple _ StartToken) = true
+
+
 
 -- | Effect
 addOnKeyDownEventListener :: HTMLDocument -> (KE.KeyboardEvent -> Effect Unit) -> Effect (Effect Unit)
@@ -258,7 +284,8 @@ eval (Init next) = next <$ do
   H.subscribe $ HES.eventSource' (addOnKeyDownEventListener document) (Just <<< H.request <<< OnKeyDown)
 
   { body } <- H.liftAff $ AX.get Response.string url
-  let dojo = String.dropRight 1
+  let dojo = removeEscapeChar
+              <<< String.dropRight 1
               <<< String.drop 1
               <<< either (const "") identity
                 $ body
