@@ -125,6 +125,8 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 
 ## dojo-web with full charset (# = 500)
 
+2018-12-15-1 3min 40s
+
 2018-12-14-1 3min 42s
 
 2018-12-13-1 3min 43s
@@ -706,6 +708,6 @@ When typing a sequence like `^6^`, there is no need to switch hands but press an
 
 # Bug
 
-Fixed, 2018-12-09
+Partially Fixed, edge case: `\\\\`, only one `\` got removed.  ~~Fixed, 2018-12-09~~
 ~~2018-12-08
 Parsed response string from `purescript-affjax` contains quotes and escape token (`\`).~~
