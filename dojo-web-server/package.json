@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "start": "node dist/app.js",
+    "start": "Port=8081 node dist/app.js",
     "build": "pulp build -O --to dist/app.js",
     "dev": "pulp build --to dist/app.js && yarn start"
   },
