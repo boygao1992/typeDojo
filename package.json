@@ -10,7 +10,7 @@
   "license": "MIT",
   "dependencies": {
     "crocks": "^0.9.4",
-    "moment": "^2.22.2",
+    "moment": "^2.29.2",
     "ramda": "^0.25.0",
     "randomatic": "^3.0.0"
   },
